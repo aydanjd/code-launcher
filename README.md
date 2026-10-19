@@ -16,6 +16,7 @@ Launch interactive programming environments directly from the main menu.
 - **Interactive Python** — Launch the Python interpreter.
 - **Interactive JavaScript** — Start the JavaScript environment.
 - **Interactive Java** — Access the Java development environment.
+- **Language Hub** — Open installed language shells and dedicated Go, Rust, Nim, and Zig workspaces.
 
 ### Workspace Tools
 Tools for creating, compiling, and managing development projects.
@@ -31,6 +32,7 @@ Tools for creating, compiling, and managing development projects.
 - **System Dashboard** — Access system information.
 - **btop Resource Monitor** — Monitor system resources in real time.
 - **Developer Health Check** — Check aspects of your development environment.
+- **Dev Doctor** — Read-only PATH and version checks for common compilers, interpreters, and developer tools, including Rust, Go, Perl, Ruby, PHP, Dart, Swift, Julia, Kotlin, Scala, Elixir, Erlang, Lua, R, Nim, and Zig.
 - **Update Center** — Access launcher update tools.
 - **Apple Silicon Diagnostics** — Run diagnostics for your Mac environment.
 
@@ -147,6 +149,8 @@ Code Launcher V17 provides the following menu options:
 | 16 | Ollama AI Center |
 | 17 | Continue in normal Zsh |
 | 18 | Setup / Install Dependencies |
+| 19 | Dev Doctor — Check toolchains |
+| 20 | Language Hub — Open language shells/workspaces |
 
 Select an option from the menu to access the corresponding feature.
 
