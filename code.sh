@@ -1,8 +1,8 @@
 #!/bin/zsh
 # ==================================================
-# CODE LAUNCHER V16 - ULTIMATE EDITION
+# CODE LAUNCHER V17 - ULTIMATE EDITION
 # macOS / Apple Silicon
-# V16: safer update center, Homebrew inventory, CLI diagnostics, guarded Ollama control
+# V17: guided dependency setup, startup checks, safer update center and guarded Ollama control
 # ==================================================
 
 export CODE_LAUNCHER_STARTED=1
@@ -35,7 +35,7 @@ pause() {
 header() {
     clear
     echo "=================================================="
-    echo "             CODE LAUNCHER V16"
+    echo "             CODE LAUNCHER V17"
     echo "              ULTIMATE EDITION"
     echo "=================================================="
     echo
@@ -198,7 +198,7 @@ quick_compile() {
     fi
 
     local tempdir
-    tempdir="$(mktemp -d "${TMPDIR:-/tmp}/code-v16.XXXXXX")" || {
+    tempdir="$(mktemp -d "${TMPDIR:-/tmp}/code-v17.XXXXXX")" || {
         echo "Could not create temporary directory."
         pause
         return
@@ -375,7 +375,7 @@ if __name__ == "__main__":
     cat > "$destination/README.md" <<'README'
 # Coding Project
 
-Created with Code Launcher V16.
+Created with Code Launcher V17.
 
 Edit the starter file and use Quick Compile & Run
 or the appropriate compiler/interpreter to run it.
@@ -546,7 +546,7 @@ developer_health() {
     local skipped=0
     local tempdir
 
-    tempdir="$(mktemp -d "${TMPDIR:-/tmp}/health-v16.XXXXXX")" || {
+    tempdir="$(mktemp -d "${TMPDIR:-/tmp}/health-v17.XXXXXX")" || {
         echo "Could not create temporary test directory."
         pause
         return
@@ -1541,7 +1541,210 @@ ollama_ai_center() {
 }
 
 # ------------------------------------------------------------
-# V16 MAIN MENU
+# V17 DEPENDENCY SETUP
+# ------------------------------------------------------------
+
+v17_tool_available() {
+    case "$1" in
+        command_line_tools) xcode-select -p >/dev/null 2>&1 ;;
+        *) command -v "$1" >/dev/null 2>&1 ;;
+    esac
+}
+
+v17_dependency_check() {
+    local tool missing=0
+    echo "DEPENDENCY CHECK"
+    divider
+    for tool in brew git node npm python3 java javac clang clang++ btop ollama; do
+        if v17_tool_available "$tool"; then
+            printf '[OK]      %-12s %s\n' "$tool" "$(command -v "$tool")"
+        else
+            printf '[MISSING] %s\n' "$tool"
+            (( missing++ ))
+        fi
+    done
+    if v17_tool_available command_line_tools; then
+        printf '[OK]      Apple Command Line Tools (%s)\n' "$(xcode-select -p 2>/dev/null)"
+    else
+        echo '[MISSING] Apple Command Line Tools'
+        (( missing++ ))
+    fi
+    echo
+    if (( missing > 0 )); then
+        echo "$missing item(s) are missing. The check did not install or change anything."
+        return 1
+    fi
+    echo 'All checked tools are available on PATH.'
+    return 0
+}
+
+v17_install_homebrew() {
+    local installer confirm
+    if command -v brew >/dev/null 2>&1; then
+        echo "Homebrew is already available: $(command -v brew)"
+        return 0
+    fi
+    echo "Homebrew is missing. This downloads the official Homebrew installer script to a temporary file."
+    echo "Review the script before running it; the installer may request administrator approval."
+    read "confirm?Download the official installer from brew.sh? (y/N): "
+    [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]] || { echo 'Cancelled.'; return 1; }
+    installer="$(mktemp "${TMPDIR:-/tmp}/homebrew-install.XXXXXX")" || return 1
+    if ! curl -fL --proto '=https' --tlsv1.2 --max-time 120 \
+        https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$installer"; then
+        rm -f "$installer"
+        echo 'Download failed; Homebrew was not installed.'
+        return 1
+    fi
+    echo "Downloaded installer: $installer"
+    echo "Inspect it with: less '$installer'"
+    read "confirm?Run this downloaded Homebrew installer now? (y/N): "
+    if [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]]; then
+        /bin/bash "$installer"
+        local install_status=$?
+        rm -f "$installer"
+        if (( install_status != 0 )); then
+            echo 'Homebrew installer reported an error. Review its output.'
+            return "$install_status"
+        fi
+        if [[ -x /opt/homebrew/bin/brew ]]; then
+            export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+        elif [[ -x /usr/local/bin/brew ]]; then
+            export PATH="/usr/local/bin:/usr/local/sbin:$PATH"
+        fi
+        command -v brew >/dev/null 2>&1 || {
+            echo 'Homebrew may be installed, but brew is not yet on PATH. Follow Homebrew’s printed shell setup instructions.'
+            return 1
+        }
+    else
+        rm -f "$installer"
+        echo 'Homebrew installation cancelled.'
+        return 1
+    fi
+}
+
+v17_setup_dependencies() {
+    local choice confirm formula setup_result=0
+    local -a formulas
+    header
+    echo 'V17 SETUP / INSTALL DEPENDENCIES'
+    divider
+    echo 'This checks first, skips tools already installed, and asks before making changes.'
+    echo 'No package upgrades or global npm upgrades are performed.'
+    echo
+    v17_dependency_check || true
+    echo
+    echo 'Choose what to set up:'
+    echo ' 1. Core developer tools (Git, Node.js/npm, Python 3, Java JDK)'
+    echo ' 2. Apple Command Line Tools (C/C++ compilers)'
+    echo ' 3. Optional tools (btop and Ollama)'
+    echo ' 4. All of the above'
+    echo ' 5. Re-run dependency check only'
+    echo ' 0. Back'
+    read 'choice?Choose an option: '
+    case "$choice" in
+        1) formulas=(git node python openjdk) ;;
+        2)
+            if v17_tool_available command_line_tools; then
+                echo 'Apple Command Line Tools are already configured.'
+                pause
+                return
+            fi
+            echo 'macOS will open the Apple Command Line Tools installer. Complete it in the system dialog.'
+            read "confirm?Run xcode-select --install? (y/N): "
+            if [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]]; then
+                xcode-select --install
+            else
+                echo 'Cancelled.'
+            fi
+            pause
+            return
+            ;;
+        3) formulas=(btop ollama) ;;
+        4) formulas=(git node python openjdk btop ollama) ;;
+        5) v17_dependency_check; pause; return ;;
+        0) return ;;
+        *) echo 'Invalid choice.'; pause; return ;;
+    esac
+
+    if ! command -v brew >/dev/null 2>&1; then
+        echo 'Homebrew is required to install these packages.'
+        v17_install_homebrew || { pause; return 1; }
+    fi
+
+    echo
+    echo 'Selected package formulas:'
+    for formula in "${formulas[@]}"; do
+        case "$formula" in
+            openjdk) v17_tool_available java && v17_tool_available javac && echo "  $formula (Java/JDK already detected)" || echo "  $formula" ;;
+            *) v17_tool_available "$formula" && echo "  $formula (command already detected)" || echo "  $formula" ;;
+        esac
+    done
+    echo
+    echo 'Homebrew may download packages and dependencies. Review any prompts it displays.'
+    read "confirm?Continue installing missing selected packages? (y/N): "
+    if [[ "$confirm" != [yY] && "$confirm" != [yY][eE][sS] ]]; then
+        echo 'Installation cancelled.'
+        pause
+        return
+    fi
+
+    for formula in "${formulas[@]}"; do
+        case "$formula" in
+            git|node|python|btop|ollama)
+                local detected_command="$formula"
+                [[ "$formula" == "python" ]] && detected_command="python3"
+                if command -v "$detected_command" >/dev/null 2>&1; then
+                    echo "Skipping $formula: $detected_command is already available."
+                elif brew list --formula "$formula" >/dev/null 2>&1; then
+                    echo "$formula is installed in Homebrew; checking PATH after installation."
+                else
+                    echo "Installing $formula..."
+                    brew install "$formula" || setup_result=1
+                fi
+                ;;
+            openjdk)
+                if command -v java >/dev/null 2>&1 && command -v javac >/dev/null 2>&1; then
+                    echo 'Skipping openjdk: java and javac are already available.'
+                elif brew list --formula openjdk >/dev/null 2>&1; then
+                    echo 'openjdk is already installed by Homebrew; it may need PATH/JAVA_HOME setup.'
+                else
+                    echo 'Installing openjdk...'
+                    brew install openjdk || setup_result=1
+                    echo 'Note: Homebrew may print extra PATH or symlink instructions for openjdk; follow its output if java/javac are not found.'
+                fi
+                ;;
+        esac
+    done
+    echo
+    echo 'POST-INSTALL CHECK'
+    divider
+    v17_dependency_check || true
+    if (( setup_result == 0 )); then
+        echo 'Setup commands completed. Review any PATH instructions above.'
+    else
+        echo 'One or more installs failed. Review Homebrew output and retry the missing package.'
+    fi
+    pause
+}
+
+v17_startup_check() {
+    local choice
+    # Startup check is informational and never installs anything automatically.
+    if ! command -v git >/dev/null 2>&1 || ! command -v node >/dev/null 2>&1 || \
+       ! command -v python3 >/dev/null 2>&1 || ! command -v java >/dev/null 2>&1 || \
+       ! command -v brew >/dev/null 2>&1 || ! v17_tool_available command_line_tools; then
+        echo
+        echo 'Some common developer dependencies are missing.'
+        echo 'Nothing has been installed or changed.'
+        read "choice?Open the dependency setup menu now? (y/N): "
+        if [[ "$choice" == [yY] || "$choice" == [yY][eE][sS] ]]; then
+            v17_setup_dependencies
+        fi
+    fi
+}
+
+# ------------------------------------------------------------
+# V17 MAIN MENU
 # ------------------------------------------------------------
 
 main_menu() {
@@ -1578,6 +1781,7 @@ main_menu() {
         echo " 16. Ollama AI Center"
         echo "----------------------------------------------------------------"
         echo " 17. Continue in normal Zsh"
+        echo " 18. Setup / Install Dependencies"
         echo
         echo "================================================================"
         read "choice?Choose an option: "
@@ -1606,6 +1810,7 @@ main_menu() {
             14) update_center ;;
             15) apple_diagnostics ;;
             16) ollama_ai_center ;;
+            18) v17_setup_dependencies ;;
             17)
                 echo
                 echo "Returning to your normal Zsh session."
@@ -1619,4 +1824,5 @@ main_menu() {
         esac
     done
 }
+v17_startup_check
 main_menu
