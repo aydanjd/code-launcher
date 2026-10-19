@@ -1743,6 +1743,122 @@ v17_startup_check() {
     fi
 }
 
+
+# ------------------------------------------------------------
+# DEV DOCTOR — READ-ONLY TOOLCHAIN DIAGNOSTICS
+# ------------------------------------------------------------
+
+dev_doctor() {
+    header
+    echo "DEV DOCTOR — LANGUAGE & TOOLCHAIN CHECK"
+    divider
+    echo "Read-only check: this function does not install, upgrade, or modify tools."
+    echo
+
+    local passed=0 missing=0
+    local tool version_cmd version_output
+    local -a tools
+    tools=(brew git clang clang++ make cmake ninja python3 pip3 node npm java javac go rustc cargo rustup perl ruby php composer dart swift lua luarocks R julia elixir erl kotlinc scala scalac nim zig gcc g++ llvm-config shellcheck)
+
+    for tool in "${tools[@]}"; do
+        if command -v "$tool" >/dev/null 2>&1; then
+            version_output=""
+            case "$tool" in
+                brew) version_output="$(brew --version 2>/dev/null | head -n 1)" ;;
+                git) version_output="$(git --version 2>/dev/null)" ;;
+                clang|clang++|gcc|g++|make|cmake|ninja|rustc|cargo|rustup|go|perl|ruby|php|composer|dart|swift|lua|luarocks|R|julia|elixir|erl|kotlinc|scala|scalac|nim|zig|shellcheck|node|npm|python3|pip3|java|javac|llvm-config)
+                    version_output="$("$tool" --version 2>&1 | head -n 1)"
+                    ;;
+            esac
+            printf '[OK]      %-12s %s\n' "$tool" "$(command -v "$tool")"
+            [[ -n "$version_output" ]] && printf '          %s\n' "$version_output"
+            (( passed++ ))
+        else
+            printf '[MISSING] %-12s not found on PATH\n' "$tool"
+            (( missing++ ))
+        fi
+    done
+
+    echo
+    divider
+    printf 'Available commands: %d\n' "$passed"
+    printf 'Missing commands:   %d\n' "$missing"
+    echo
+    echo "Notes:"
+    echo " • A missing command may be optional or installed outside PATH."
+    echo " • Swift may be supplied by Apple's Command Line Tools or Homebrew."
+    echo " • This is a command/version check, not a full compile test."
+    echo " • For Rust, both rustc and cargo should be available."
+    pause
+}
+
+# ------------------------------------------------------------
+# LANGUAGE HUB — OPEN REPLS OR LANGUAGE WORKSPACES
+# ------------------------------------------------------------
+
+language_hub() {
+    local choice workspace
+    while true; do
+        header
+        echo "LANGUAGE HUB"
+        divider
+        echo "INTERACTIVE INTERPRETERS / SHELLS"
+        echo " 1. Python       2. JavaScript / Node"
+        echo " 3. Java / JShell 4. Ruby"
+        echo " 5. Perl         6. Lua"
+        echo " 7. R            8. Julia"
+        echo " 9. Elixir       10. Erlang shell"
+        echo "11. Swift REPL  12. Dart"
+        echo "13. Kotlin shell 14. Scala shell"
+        echo "15. Go workspace 16. Rust workspace"
+        echo "17. Nim workspace 18. Zig workspace"
+        echo "19. PHP interactive shell"
+        echo " 0. Back"
+        echo
+        read "choice?Choose a language: "
+        case "$choice" in
+            1) command -v python3 >/dev/null 2>&1 && python3 || echo "Python 3 not found." ;;
+            2) command -v node >/dev/null 2>&1 && node || echo "Node.js not found." ;;
+            3) command -v jshell >/dev/null 2>&1 && jshell || echo "JShell not found; check Java JDK." ;;
+            4) command -v irb >/dev/null 2>&1 && irb || echo "IRB not found." ;;
+            5) command -v perl >/dev/null 2>&1 && perl -de 1 || echo "Perl not found." ;;
+            6) command -v lua >/dev/null 2>&1 && lua || echo "Lua not found." ;;
+            7) command -v R >/dev/null 2>&1 && R --no-save || echo "R not found." ;;
+            8) command -v julia >/dev/null 2>&1 && julia || echo "Julia not found." ;;
+            9) command -v iex >/dev/null 2>&1 && iex || echo "IEx not found; check Elixir installation." ;;
+            10) command -v erl >/dev/null 2>&1 && erl || echo "Erlang not found." ;;
+            11) command -v swift >/dev/null 2>&1 && swift || echo "Swift not found." ;;
+            12) command -v dart >/dev/null 2>&1 && dart || echo "Dart not found." ;;
+            13) command -v kotlin >/dev/null 2>&1 && kotlin || echo "Kotlin not found." ;;
+            14) command -v scala >/dev/null 2>&1 && scala || echo "Scala not found." ;;
+            15)
+                workspace="$PROJECTS/go-workspace"
+                mkdir -p "$workspace"
+                open_shell "$workspace"
+                ;;
+            16)
+                workspace="$PROJECTS/rust-workspace"
+                mkdir -p "$workspace"
+                open_shell "$workspace"
+                ;;
+            17)
+                workspace="$PROJECTS/nim-workspace"
+                mkdir -p "$workspace"
+                open_shell "$workspace"
+                ;;
+            18)
+                workspace="$PROJECTS/zig-workspace"
+                mkdir -p "$workspace"
+                open_shell "$workspace"
+                ;;
+            19) command -v php >/dev/null 2>&1 && php -a || echo "PHP not found." ;;
+            0) return ;;
+            *) echo "Invalid choice." ;;
+        esac
+        [[ "$choice" == "0" ]] || pause
+    done
+}
+
 # ------------------------------------------------------------
 # V17 MAIN MENU
 # ------------------------------------------------------------
@@ -1782,6 +1898,8 @@ main_menu() {
         echo "----------------------------------------------------------------"
         echo " 17. Continue in normal Zsh"
         echo " 18. Setup / Install Dependencies"
+        echo " 19. Dev Doctor — Check all toolchains"
+        echo " 20. Language Hub — Open languages / workspaces"
         echo
         echo "================================================================"
         read "choice?Choose an option: "
@@ -1811,6 +1929,8 @@ main_menu() {
             15) apple_diagnostics ;;
             16) ollama_ai_center ;;
             18) v17_setup_dependencies ;;
+            19) dev_doctor ;;
+            20) language_hub ;;
             17)
                 echo
                 echo "Returning to your normal Zsh session."
