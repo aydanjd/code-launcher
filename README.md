@@ -1,286 +1,231 @@
-# Code Launcher V17 — Ultimate Edition
+# Code Launcher V17
 
-**A terminal-based developer toolkit for macOS and Apple Silicon.**
-
-Code Launcher V17 brings interactive programming environments, workspace management, compilation tools, system diagnostics, dependency setup, and local AI tools together in one convenient Zsh launcher.
-
----
+A menu-driven development launcher for macOS and Apple Silicon. Quickly access coding workspaces, launch language tools, check your development environment, and manage your programming workflow from one place.
 
 ## Features
 
-### Development Center
-Launch interactive programming environments directly from the main menu.
-
-- **Interactive C** — Open the C programming environment.
-- **Interactive C++** — Access the C++ development environment.
-- **Interactive Python** — Launch the Python interpreter.
-- **Interactive JavaScript** — Start the JavaScript environment.
-- **Interactive Java** — Access the Java development environment.
-- **Language Hub** — Open installed language shells and dedicated Go, Rust, Nim, and Zig workspaces.
-  - Go and Rust workspaces can optionally initialize a module/package after confirmation when `go.mod` or `Cargo.toml` is absent.
-  - Perl opens a simple line-by-line mini-REPL rather than the Perl debugger.
-
-### Workspace Tools
-Tools for creating, compiling, and managing development projects.
-
-- **C Workspace** — Access the C workspace.
-- **C++ Workspace** — Access the C++ workspace.
-- **Quick Compile & Run** — Compile and run supported code.
-- **Project Creator** — Create development projects.
-- **Workspace Manager** — Manage development workspaces.
-
-### System & Developer Tools
-
-- **System Dashboard** — Access system information.
-- **btop Resource Monitor** — Monitor system resources in real time.
-- **Developer Health Check** — Check aspects of your development environment.
-- **Dev Doctor** — Read-only PATH and version checks for common compilers, interpreters, and developer tools, including Rust, Go, Perl, Ruby, PHP, Dart, Swift, Julia, Kotlin, Scala, Elixir, Erlang, Lua, R, Nim, and Zig.
-  - Uses tool-specific version commands where needed and reports common Rustup PATH locations; it does not install or upgrade software.
-- **Update Center** — Access launcher update tools.
-- **Apple Silicon Diagnostics** — Run diagnostics for your Mac environment.
-
-### Artificial Intelligence
-
-- **Ollama AI Center** — Access the launcher's Ollama integration for local AI workflows.
-
-### Dependency Setup
-
-V17 introduces a guided dependency setup feature.
-
-- Check development dependencies.
-- Guide the user through installing supported dependencies.
-- Use Homebrew where applicable.
-- Help prepare the development environment.
-
-The available dependencies and installation requirements depend on the selected tools and the system configuration.
-
----
-
-## What's New in V17?
-
-V17 introduces improvements focused on developer setup and launcher management.
-
-- **Guided Dependency Setup** — A dedicated menu option for setting up development dependencies.
-- **Startup Checks** — Check the development environment when the launcher starts.
-- **Update Center Improvements** — Updated launcher maintenance workflows.
-- **Guarded Ollama Controls** — Improved safeguards around Ollama management.
-- **Developer Workflow Tools** — Programming environments, workspaces, compilation, and system diagnostics in one menu.
-
----
+- **Dev Doctor** — Check installed development tools, versions, and PATH configuration.
+- **Language Hub** — Access supported language environments and development workspaces.
+- **Organized workspaces** — Keep projects grouped by language.
+- **Go workspace setup** — Optionally initialize a Go module with `go mod init`.
+- **Rust workspace setup** — Optionally initialize a Rust package with `cargo init`.
+- **Interactive terminal menu** — Navigate development tools without remembering every command.
+- **Backup directory** — Keep development-related backups organized.
+- **Shell integration** — Optionally launch the menu automatically in interactive Zsh sessions.
 
 ## Requirements
 
-Code Launcher is designed for macOS, particularly Apple Silicon Macs.
-
-Depending on the features you use, your environment may require:
-
 - macOS
 - Zsh
-- Git
-- Homebrew
-- Python 3
-- A C compiler
-- A C++ compiler
-- Node.js or another JavaScript runtime
-- Java development tools
-- Optional utilities such as `btop`
-- Ollama for local AI features
+- Apple Silicon recommended
+- Git and Homebrew recommended for managing development tools
+- Programming language toolchains installed as needed
 
-**Note:** Not every dependency is required for every feature. Use the launcher's dependency setup and health-check options to help determine what your environment needs.
+The launcher can check for tools, but selecting a language does not necessarily install that language's compiler or runtime.
 
----
+## Workspace Directories
+
+The launcher uses these directories by default:
+
+| Directory | Purpose |
+|---|---|
+| `~/CodeProjects` | General coding projects |
+| `~/CodeBackups` | Backups |
+| `~/CWorkspace` | C projects |
+| `~/CppWorkspace` | C++ projects |
+
+Additional language workspaces may be available through the Language Hub.
 
 ## Installation
 
 ### 1. Clone the repository
 
-Open Terminal and run:
-
 ```zsh
-git clone https://github.com/aydanjd/code-launcher.git
+mkdir -p ~/CodeProjects
+cd ~/CodeProjects
+git clone https://github.com/aydanjd/code-launcher.git CodeLauncher
 ```
 
-### 2. Enter the project directory
-
-```zsh
-cd code-launcher
-```
-
-### 3. Check the script syntax
-
-```zsh
-zsh -n code.sh
-```
-
-If the command produces no errors, Zsh has successfully parsed the script.
-
-### 4. Make the launcher executable
-
-```zsh
-chmod +x code.sh
-```
-
-### 5. Start Code Launcher
-
-```zsh
-./code.sh
-```
-
----
-
-## Main Menu
-
-Code Launcher V17 provides the following menu options:
-
-| Option | Feature |
-|---:|---|
-| 1 | Interactive C |
-| 2 | Interactive C++ |
-| 3 | Interactive Python |
-| 4 | Interactive JavaScript |
-| 5 | Interactive Java |
-| 6 | C Workspace |
-| 7 | C++ Workspace |
-| 8 | Quick Compile & Run |
-| 9 | Project Creator |
-| 10 | Workspace Manager |
-| 11 | System Dashboard |
-| 12 | btop — Live Resource Monitor |
-| 13 | Developer Health Check |
-| 14 | Update Center |
-| 15 | Apple Silicon Diagnostics |
-| 16 | Ollama AI Center |
-| 17 | Continue in normal Zsh |
-| 18 | Setup / Install Dependencies |
-| 19 | Dev Doctor — Check toolchains |
-| 20 | Language Hub — Open language shells/workspaces |
-
-Select an option from the menu to access the corresponding feature.
-
----
-
-## Updating
-
-To retrieve the latest committed version from GitHub, navigate to your local repository and run:
+If you already have the repository, update it instead:
 
 ```zsh
 cd ~/CodeProjects/CodeLauncher
+git switch main
 git pull origin main
 ```
 
-Then check the script syntax:
+### 2. Make the launcher executable
 
 ```zsh
-zsh -n code.sh
+chmod +x ~/CodeProjects/CodeLauncher/code.sh
 ```
 
-**Important:** If you have local changes, review them before updating so you don't lose work.
+### 3. Set up your main `code.sh`
 
----
+Back up an existing launcher before replacing it:
+
+```zsh
+if [[ -f ~/code.sh ]]; then
+    cp ~/code.sh ~/code.sh.backup
+fi
+
+cp ~/CodeProjects/CodeLauncher/code.sh ~/code.sh
+chmod +x ~/code.sh
+```
+
+### 4. Check shell syntax
+
+```zsh
+zsh -n ~/code.sh
+```
+
+If the command returns no errors, the script passed the Zsh syntax check.
+
+### 5. Launch Code Launcher
+
+```zsh
+~/code.sh
+```
+
+## Dev Doctor
+
+Use **Dev Doctor** from the launcher menu to inspect your development environment.
+
+Depending on the checks implemented in the current version, it can help identify:
+
+- Available compilers and interpreters
+- Installed tool versions
+- Missing commands
+- PATH configuration issues
+- Development utilities that may need attention
+
+Dev Doctor is intended as a diagnostic tool. A reported issue may require installing a dependency or adjusting your shell configuration.
+
+## Language Hub
+
+Use **Language Hub** to access supported programming language environments and workspaces.
+
+The broader development setup includes languages and tools such as:
+
+- C and C++
+- Go
+- Rust
+- Perl
+- Python
+- Java
+- JavaScript and Node.js
+- Swift
+- Ruby
+- PHP
+- Julia
+- Zig
+- Nim
+- Elixir and Erlang
+- Kotlin
+- Scala
+- Dart
+- Lua
+- R
+
+The exact actions available in the menu depend on the current script version and which tools are installed.
+
+### Go Workspace
+
+When offered, the launcher can initialize a Go module using:
+
+```zsh
+go mod init example.com/myproject
+```
+
+Replace the example module path with one appropriate for your project.
+
+### Rust Workspace
+
+When offered, the launcher can initialize a Rust package using:
+
+```zsh
+cargo init
+```
+
+Review the generated files before beginning development.
+
+## Shell Integration
+
+To launch Code Launcher automatically when opening an interactive Zsh session, add the following block to `~/.zshrc`:
+
+```zsh
+# CODE LAUNCHER V17 AUTO-START
+if [[ -o interactive && -z "$CODE_LAUNCHER_STARTED" ]]; then
+    export CODE_LAUNCHER_STARTED=1
+    "$HOME/CodeProjects/CodeLauncher/code.sh"
+fi
+```
+
+Then reload your shell configuration:
+
+```zsh
+source ~/.zshrc
+```
+
+To stop automatic startup, remove or comment out the block in `~/.zshrc`.
 
 ## Troubleshooting
 
-### The launcher will not start
+### The launcher does not start
 
-Check the script syntax:
-
-```zsh
-zsh -n code.sh
-```
-
-Ensure the script is executable:
+Check permissions and syntax:
 
 ```zsh
-chmod +x code.sh
+chmod +x ~/code.sh
+zsh -n ~/code.sh
 ```
 
-Then try:
+### A language command is missing
+
+Check whether the tool is installed:
 
 ```zsh
-./code.sh
+command -v go
+command -v rustc
+command -v perl
+command -v python3
 ```
 
-### Dev Doctor reports Rust as missing
+Replace the example commands with the tool you need to troubleshoot.
 
-Check whether Rustup tools are available in the standard user directory:
+### A tool works in one terminal but not another
+
+Check your PATH:
 
 ```zsh
-ls -la "$HOME/.cargo/bin"
-command -v rustc cargo rustup
+echo "$PATH"
 ```
 
-If the tools exist under `~/.cargo/bin` but are not found, add that directory to your shell PATH in your shell configuration. Dev Doctor only reports the condition; it does not change PATH or install tools.
+Some package managers install tools outside the default PATH. Follow the relevant tool's installation instructions before changing your shell configuration.
 
-### A development tool is missing
+### Restore the previous launcher
 
-Open the launcher and select:
-
-**Option 18 — Setup / Install Dependencies**
-
-Follow the prompts and review installation choices before confirming them.
-
-### btop is unavailable
-
-Check whether it is installed:
+If you created the backup shown in the installation instructions, restore it with:
 
 ```zsh
-command -v btop
+cp ~/code.sh.backup ~/code.sh
+chmod +x ~/code.sh
 ```
 
-If it is missing, use the dependency setup feature or install it through your preferred package-management method.
+Use the actual backup filename you created if it differs.
 
-### Ollama is unavailable
+## Safety and Project Data
 
-Check whether the Ollama command is available:
-
-```zsh
-command -v ollama
-```
-
-The Ollama AI Center may require Ollama to be installed and configured before its features can work.
-
----
-
-## Safety & Best Practices
-
-- Review installation prompts before installing dependencies.
-- Keep backups of important source files.
-- Review code changes before committing them.
-- Avoid running commands you do not understand.
-- Keep your local repository synchronized with GitHub.
-- Test launcher features after making changes.
-
----
-
-## Project Roadmap
-
-Potential areas for future improvements include:
-
-- More programming language integrations.
-- Expanded dependency detection.
-- Additional workspace automation.
-- Improved diagnostics and error reporting.
-- Further improvements to Ollama management.
-- Enhanced installation and update workflows.
-
-These are possible future improvements, not promises of features already implemented.
-
----
-
-## 📂 Repository
-
-**GitHub:** https://github.com/aydanjd/code-launcher
-
-**Main launcher:** `code.sh`
-
-**Current version:** V17 — Ultimate Edition
-
----
+- Review commands before running them.
+- Back up important project files before major changes.
+- Confirm prompts before allowing workspace initialization.
+- Keep credentials, tokens, and private configuration out of version control.
 
 ## License
 
-Check the repository for its license and applicable terms before redistributing or modifying the project.
+Check the repository for its current license and usage terms.
 
----
+## Repository
 
-**Code Launcher V17 — Your development tools, one terminal away.** 
+[aydanjd/code-launcher](https://github.com/aydanjd/code-launcher)
+\
