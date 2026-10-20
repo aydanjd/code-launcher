@@ -16,6 +16,9 @@ Launch interactive programming environments directly from the main menu.
 - **Interactive Python** — Launch the Python interpreter.
 - **Interactive JavaScript** — Start the JavaScript environment.
 - **Interactive Java** — Access the Java development environment.
+- **Language Hub** — Open installed language shells and dedicated Go, Rust, Nim, and Zig workspaces.
+  - Go and Rust workspaces can optionally initialize a module/package after confirmation when `go.mod` or `Cargo.toml` is absent.
+  - Perl opens a simple line-by-line mini-REPL rather than the Perl debugger.
 
 ### Workspace Tools
 Tools for creating, compiling, and managing development projects.
@@ -31,6 +34,8 @@ Tools for creating, compiling, and managing development projects.
 - **System Dashboard** — Access system information.
 - **btop Resource Monitor** — Monitor system resources in real time.
 - **Developer Health Check** — Check aspects of your development environment.
+- **Dev Doctor** — Read-only PATH and version checks for common compilers, interpreters, and developer tools, including Rust, Go, Perl, Ruby, PHP, Dart, Swift, Julia, Kotlin, Scala, Elixir, Erlang, Lua, R, Nim, and Zig.
+  - Uses tool-specific version commands where needed and reports common Rustup PATH locations; it does not install or upgrade software.
 - **Update Center** — Access launcher update tools.
 - **Apple Silicon Diagnostics** — Run diagnostics for your Mac environment.
 
@@ -147,6 +152,8 @@ Code Launcher V17 provides the following menu options:
 | 16 | Ollama AI Center |
 | 17 | Continue in normal Zsh |
 | 18 | Setup / Install Dependencies |
+| 19 | Dev Doctor — Check toolchains |
+| 20 | Language Hub — Open language shells/workspaces |
 
 Select an option from the menu to access the corresponding feature.
 
@@ -192,6 +199,17 @@ Then try:
 ```zsh
 ./code.sh
 ```
+
+### Dev Doctor reports Rust as missing
+
+Check whether Rustup tools are available in the standard user directory:
+
+```zsh
+ls -la "$HOME/.cargo/bin"
+command -v rustc cargo rustup
+```
+
+If the tools exist under `~/.cargo/bin` but are not found, add that directory to your shell PATH in your shell configuration. Dev Doctor only reports the condition; it does not change PATH or install tools.
 
 ### A development tool is missing
 

@@ -1743,6 +1743,190 @@ v17_startup_check() {
     fi
 }
 
+
+# ------------------------------------------------------------
+# DEV DOCTOR — READ-ONLY TOOLCHAIN DIAGNOSTICS
+# ------------------------------------------------------------
+
+dev_doctor() {
+    header
+    echo "DEV DOCTOR — LANGUAGE & TOOLCHAIN CHECK"
+    divider
+    echo "Read-only check: this function does not install, upgrade, or modify tools."
+    echo
+
+    local passed=0 missing=0
+    local tool version_output tool_path
+    local -a tools
+    tools=(brew git clang clang++ make cmake ninja python3 pip3 node npm java javac go rustc cargo rustup perl ruby php composer dart swift lua luarocks R julia elixir iex erl kotlinc kotlin scala scalac nim zig gcc g++ llvm-config shellcheck)
+
+    # Rustup is often installed under ~/.cargo/bin or a keg-only Homebrew prefix.
+    if [[ -d "$HOME/.cargo/bin" && ":$PATH:" != *":$HOME/.cargo/bin:"* ]]; then
+        echo "NOTE: $HOME/.cargo/bin exists but is not on PATH."
+    fi
+    if command -v brew >/dev/null 2>&1; then
+        local rustup_prefix
+        rustup_prefix="$(brew --prefix rustup 2>/dev/null)"
+        if [[ -n "$rustup_prefix" && -d "$rustup_prefix/bin" && ":$PATH:" != *":$rustup_prefix/bin:"* ]]; then
+            echo "NOTE: Homebrew rustup bin directory is not on PATH: $rustup_prefix/bin"
+        fi
+    fi
+    echo
+
+    for tool in "${tools[@]}"; do
+        if tool_path="$(command -v "$tool" 2>/dev/null)"; then
+            version_output=""
+            case "$tool" in
+                brew) version_output="$(brew --version 2>/dev/null | head -n 1)" ;;
+                git) version_output="$(git --version 2>/dev/null)" ;;
+                clang|clang++|gcc|g++|make|cmake|ninja|shellcheck|llvm-config)
+                    version_output="$("$tool" --version 2>&1 | head -n 1)" ;;
+                rustc|cargo|rustup)
+                    version_output="$("$tool" --version 2>&1 | head -n 1)" ;;
+                go) version_output="$(go version 2>&1 | head -n 1)" ;;
+                perl) version_output="$(perl -e 'printf "Perl %vd\\n", $^V' 2>&1 | head -n 1)" ;;
+                ruby) version_output="$(ruby --version 2>&1 | head -n 1)" ;;
+                php) version_output="$(php --version 2>&1 | head -n 1)" ;;
+                composer) version_output="$(composer --version 2>&1 | head -n 1)" ;;
+                dart) version_output="$(dart --version 2>&1 | head -n 1)" ;;
+                swift) version_output="$(swift --version 2>&1 | head -n 1)" ;;
+                lua) version_output="$(lua -v 2>&1 | head -n 1)" ;;
+                luarocks) version_output="$(luarocks --version 2>&1 | head -n 1)" ;;
+                R) version_output="$(R --version 2>&1 | head -n 1)" ;;
+                julia) version_output="$(julia --version 2>&1 | head -n 1)" ;;
+                elixir) version_output="$(elixir --version 2>&1 | head -n 1)" ;;
+                iex) version_output="$(elixir --version 2>&1 | head -n 1)" ;;
+                erl) version_output="$(erl -noshell -eval 'io:format("Erlang/OTP ~s~n", [erlang:system_info(otp_release)]), halt().' 2>&1 | head -n 1)" ;;
+                kotlinc) version_output="$(kotlinc -version 2>&1 | head -n 1)" ;;
+                kotlin) version_output="$(kotlin -version 2>&1 | head -n 1)" ;;
+                scala) version_output="$(scala version 2>&1 | head -n 1)" ;;
+                scalac) version_output="$(scalac -version 2>&1 | head -n 1)" ;;
+                nim) version_output="$(nim --version 2>&1 | head -n 1)" ;;
+                zig) version_output="$(zig version 2>&1 | head -n 1)" ;;
+                node) version_output="$(node --version 2>&1)" ;;
+                npm) version_output="$(npm --version 2>&1)" ;;
+                python3) version_output="$(python3 --version 2>&1)" ;;
+                pip3) version_output="$(pip3 --version 2>&1 | head -n 1)" ;;
+                java) version_output="$(java -version 2>&1 | head -n 1)" ;;
+                javac) version_output="$(javac -version 2>&1 | head -n 1)" ;;
+            esac
+            printf '[OK]      %-12s %s\\n' "$tool" "$tool_path"
+            [[ -n "$version_output" ]] && printf '          %s\\n' "$version_output"
+            (( passed++ ))
+        else
+            printf '[MISSING] %-12s not found on PATH\\n' "$tool"
+            (( missing++ ))
+        fi
+    done
+
+    echo
+    divider
+    printf 'Available commands: %d\n' "$passed"
+    printf 'Missing commands:   %d\n' "$missing"
+    echo
+    echo "Notes:"
+    echo " • A missing command may be optional or installed outside PATH."
+    echo " • Swift may be supplied by Apple's Command Line Tools or Homebrew."
+    echo " • This is a command/version check, not a full compile test."
+    echo " • For Rust, both rustc and cargo should be available."
+    pause
+}
+
+# ------------------------------------------------------------
+# LANGUAGE HUB — OPEN REPLS OR LANGUAGE WORKSPACES
+# ------------------------------------------------------------
+
+language_hub() {
+    local choice workspace
+    while true; do
+        header
+        echo "LANGUAGE HUB"
+        divider
+        echo "INTERACTIVE INTERPRETERS / SHELLS"
+        echo " 1. Python       2. JavaScript / Node"
+        echo " 3. Java / JShell 4. Ruby"
+        echo " 5. Perl         6. Lua"
+        echo " 7. R            8. Julia"
+        echo " 9. Elixir       10. Erlang shell"
+        echo "11. Swift REPL  12. Dart"
+        echo "13. Kotlin shell 14. Scala shell"
+        echo "15. Go workspace 16. Rust workspace"
+        echo "17. Nim workspace 18. Zig workspace"
+        echo "19. PHP interactive shell"
+        echo " 0. Back"
+        echo
+        read "choice?Choose a language: "
+        case "$choice" in
+            1) command -v python3 >/dev/null 2>&1 && python3 || echo "Python 3 not found." ;;
+            2) command -v node >/dev/null 2>&1 && node || echo "Node.js not found." ;;
+            3) command -v jshell >/dev/null 2>&1 && jshell || echo "JShell not found; check Java JDK." ;;
+            4) command -v irb >/dev/null 2>&1 && irb || echo "IRB not found." ;;
+            5) command -v perl >/dev/null 2>&1 && { echo "Perl mini-REPL (Ctrl-D to exit; each line is evaluated separately)."; perl -MTerm::ReadLine -e '$term = Term::ReadLine->new("Perl"); while (defined($line = $term->readline("perl> "))) { eval $line; warn $@ if $@; }' ; } || echo "Perl not found." ;;
+            6) command -v lua >/dev/null 2>&1 && lua || echo "Lua not found." ;;
+            7) command -v R >/dev/null 2>&1 && R --no-save || echo "R not found." ;;
+            8) command -v julia >/dev/null 2>&1 && julia || echo "Julia not found." ;;
+            9) command -v iex >/dev/null 2>&1 && iex || echo "IEx not found; check Elixir installation." ;;
+            10) command -v erl >/dev/null 2>&1 && erl || echo "Erlang not found." ;;
+            11) command -v swift >/dev/null 2>&1 && swift || echo "Swift not found." ;;
+            12) command -v dart >/dev/null 2>&1 && dart || echo "Dart not found." ;;
+            13) command -v kotlin >/dev/null 2>&1 && kotlin || echo "Kotlin not found." ;;
+            14) command -v scala >/dev/null 2>&1 && scala || echo "Scala not found." ;;
+            15)
+                workspace="$PROJECTS/go-workspace"
+                mkdir -p "$workspace"
+                if ! command -v go >/dev/null 2>&1; then
+                    echo "Go is not found on PATH; opening the workspace without initializing it."
+                elif [[ ! -f "$workspace/go.mod" ]]; then
+                    echo "No go.mod found in $workspace."
+                    read "reply?Initialize a Go module here? [y/N] "
+                    if [[ "$reply" == [yY] ]]; then
+                        read "module_name?Module path (for example example.com/myapp): "
+                        if [[ -n "$module_name" ]]; then
+                            (cd "$workspace" && go mod init "$module_name") || echo "Go module initialization failed."
+                        else
+                            echo "Skipped: module path was empty."
+                        fi
+                    fi
+                fi
+                open_shell "$workspace"
+                ;;
+            16)
+                workspace="$PROJECTS/rust-workspace"
+                mkdir -p "$workspace"
+                if ! command -v cargo >/dev/null 2>&1; then
+                    echo "Cargo is not found on PATH; opening the workspace without initializing it."
+                elif [[ ! -f "$workspace/Cargo.toml" ]]; then
+                    echo "No Cargo.toml found in $workspace."
+                    read "reply?Initialize a Rust package here? [y/N] "
+                    if [[ "$reply" == [yY] ]]; then
+                        read "package_name?Package name (blank uses directory name): "
+                        if [[ -n "$package_name" ]]; then
+                            (cd "$workspace" && cargo init --name "$package_name") || echo "Cargo initialization failed."
+                        else
+                            (cd "$workspace" && cargo init) || echo "Cargo initialization failed."
+                        fi
+                    fi
+                fi
+                open_shell "$workspace"
+                ;;
+            17)
+                workspace="$PROJECTS/nim-workspace"
+                mkdir -p "$workspace"
+                open_shell "$workspace"
+                ;;
+            18)
+                workspace="$PROJECTS/zig-workspace"
+                mkdir -p "$workspace"
+                open_shell "$workspace"
+                ;;
+            19) command -v php >/dev/null 2>&1 && php -a || echo "PHP not found." ;;
+            0) return ;;
+            *) echo "Invalid choice." ;;
+        esac
+        [[ "$choice" == "0" ]] || pause
+    done
+}
+
 # ------------------------------------------------------------
 # V17 MAIN MENU
 # ------------------------------------------------------------
@@ -1782,6 +1966,8 @@ main_menu() {
         echo "----------------------------------------------------------------"
         echo " 17. Continue in normal Zsh"
         echo " 18. Setup / Install Dependencies"
+        echo " 19. Dev Doctor — Check all toolchains"
+        echo " 20. Language Hub — Open languages / workspaces"
         echo
         echo "================================================================"
         read "choice?Choose an option: "
@@ -1811,6 +1997,8 @@ main_menu() {
             15) apple_diagnostics ;;
             16) ollama_ai_center ;;
             18) v17_setup_dependencies ;;
+            19) dev_doctor ;;
+            20) language_hub ;;
             17)
                 echo
                 echo "Returning to your normal Zsh session."
