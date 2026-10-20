@@ -1756,25 +1756,65 @@ dev_doctor() {
     echo
 
     local passed=0 missing=0
-    local tool version_cmd version_output
+    local tool version_output tool_path
     local -a tools
-    tools=(brew git clang clang++ make cmake ninja python3 pip3 node npm java javac go rustc cargo rustup perl ruby php composer dart swift lua luarocks R julia elixir erl kotlinc scala scalac nim zig gcc g++ llvm-config shellcheck)
+    tools=(brew git clang clang++ make cmake ninja python3 pip3 node npm java javac go rustc cargo rustup perl ruby php composer dart swift lua luarocks R julia elixir iex erl kotlinc kotlin scala scalac nim zig gcc g++ llvm-config shellcheck)
+
+    # Rustup is often installed under ~/.cargo/bin or a keg-only Homebrew prefix.
+    if [[ -d "$HOME/.cargo/bin" && ":$PATH:" != *":$HOME/.cargo/bin:"* ]]; then
+        echo "NOTE: $HOME/.cargo/bin exists but is not on PATH."
+    fi
+    if command -v brew >/dev/null 2>&1; then
+        local rustup_prefix
+        rustup_prefix="$(brew --prefix rustup 2>/dev/null)"
+        if [[ -n "$rustup_prefix" && -d "$rustup_prefix/bin" && ":$PATH:" != *":$rustup_prefix/bin:"* ]]; then
+            echo "NOTE: Homebrew rustup bin directory is not on PATH: $rustup_prefix/bin"
+        fi
+    fi
+    echo
 
     for tool in "${tools[@]}"; do
-        if command -v "$tool" >/dev/null 2>&1; then
+        if tool_path="$(command -v "$tool" 2>/dev/null)"; then
             version_output=""
             case "$tool" in
                 brew) version_output="$(brew --version 2>/dev/null | head -n 1)" ;;
                 git) version_output="$(git --version 2>/dev/null)" ;;
-                clang|clang++|gcc|g++|make|cmake|ninja|rustc|cargo|rustup|go|perl|ruby|php|composer|dart|swift|lua|luarocks|R|julia|elixir|erl|kotlinc|scala|scalac|nim|zig|shellcheck|node|npm|python3|pip3|java|javac|llvm-config)
-                    version_output="$("$tool" --version 2>&1 | head -n 1)"
-                    ;;
+                clang|clang++|gcc|g++|make|cmake|ninja|shellcheck|llvm-config)
+                    version_output="$("$tool" --version 2>&1 | head -n 1)" ;;
+                rustc|cargo|rustup)
+                    version_output="$("$tool" --version 2>&1 | head -n 1)" ;;
+                go) version_output="$(go version 2>&1 | head -n 1)" ;;
+                perl) version_output="$(perl -e 'printf "Perl %vd\\n", $^V' 2>&1 | head -n 1)" ;;
+                ruby) version_output="$(ruby --version 2>&1 | head -n 1)" ;;
+                php) version_output="$(php --version 2>&1 | head -n 1)" ;;
+                composer) version_output="$(composer --version 2>&1 | head -n 1)" ;;
+                dart) version_output="$(dart --version 2>&1 | head -n 1)" ;;
+                swift) version_output="$(swift --version 2>&1 | head -n 1)" ;;
+                lua) version_output="$(lua -v 2>&1 | head -n 1)" ;;
+                luarocks) version_output="$(luarocks --version 2>&1 | head -n 1)" ;;
+                R) version_output="$(R --version 2>&1 | head -n 1)" ;;
+                julia) version_output="$(julia --version 2>&1 | head -n 1)" ;;
+                elixir) version_output="$(elixir --version 2>&1 | head -n 1)" ;;
+                iex) version_output="$(elixir --version 2>&1 | head -n 1)" ;;
+                erl) version_output="$(erl -noshell -eval 'io:format("Erlang/OTP ~s~n", [erlang:system_info(otp_release)]), halt().' 2>&1 | head -n 1)" ;;
+                kotlinc) version_output="$(kotlinc -version 2>&1 | head -n 1)" ;;
+                kotlin) version_output="$(kotlin -version 2>&1 | head -n 1)" ;;
+                scala) version_output="$(scala version 2>&1 | head -n 1)" ;;
+                scalac) version_output="$(scalac -version 2>&1 | head -n 1)" ;;
+                nim) version_output="$(nim --version 2>&1 | head -n 1)" ;;
+                zig) version_output="$(zig version 2>&1 | head -n 1)" ;;
+                node) version_output="$(node --version 2>&1)" ;;
+                npm) version_output="$(npm --version 2>&1)" ;;
+                python3) version_output="$(python3 --version 2>&1)" ;;
+                pip3) version_output="$(pip3 --version 2>&1 | head -n 1)" ;;
+                java) version_output="$(java -version 2>&1 | head -n 1)" ;;
+                javac) version_output="$(javac -version 2>&1 | head -n 1)" ;;
             esac
-            printf '[OK]      %-12s %s\n' "$tool" "$(command -v "$tool")"
-            [[ -n "$version_output" ]] && printf '          %s\n' "$version_output"
+            printf '[OK]      %-12s %s\\n' "$tool" "$tool_path"
+            [[ -n "$version_output" ]] && printf '          %s\\n' "$version_output"
             (( passed++ ))
         else
-            printf '[MISSING] %-12s not found on PATH\n' "$tool"
+            printf '[MISSING] %-12s not found on PATH\\n' "$tool"
             (( missing++ ))
         fi
     done
@@ -1821,7 +1861,7 @@ language_hub() {
             2) command -v node >/dev/null 2>&1 && node || echo "Node.js not found." ;;
             3) command -v jshell >/dev/null 2>&1 && jshell || echo "JShell not found; check Java JDK." ;;
             4) command -v irb >/dev/null 2>&1 && irb || echo "IRB not found." ;;
-            5) command -v perl >/dev/null 2>&1 && perl -de 1 || echo "Perl not found." ;;
+            5) command -v perl >/dev/null 2>&1 && { echo "Perl interactive mode (Ctrl-D to exit)."; perl -de 0; } || echo "Perl not found." ;;
             6) command -v lua >/dev/null 2>&1 && lua || echo "Lua not found." ;;
             7) command -v R >/dev/null 2>&1 && R --no-save || echo "R not found." ;;
             8) command -v julia >/dev/null 2>&1 && julia || echo "Julia not found." ;;
@@ -1834,11 +1874,39 @@ language_hub() {
             15)
                 workspace="$PROJECTS/go-workspace"
                 mkdir -p "$workspace"
+                if ! command -v go >/dev/null 2>&1; then
+                    echo "Go is not found on PATH; opening the workspace without initializing it."
+                elif [[ ! -f "$workspace/go.mod" ]]; then
+                    echo "No go.mod found in $workspace."
+                    read "reply?Initialize a Go module here? [y/N] "
+                    if [[ "$reply" == [yY] ]]; then
+                        read "module_name?Module path (for example example.com/myapp): "
+                        if [[ -n "$module_name" ]]; then
+                            (cd "$workspace" && go mod init "$module_name") || echo "Go module initialization failed."
+                        else
+                            echo "Skipped: module path was empty."
+                        fi
+                    fi
+                fi
                 open_shell "$workspace"
                 ;;
             16)
                 workspace="$PROJECTS/rust-workspace"
                 mkdir -p "$workspace"
+                if ! command -v cargo >/dev/null 2>&1; then
+                    echo "Cargo is not found on PATH; opening the workspace without initializing it."
+                elif [[ ! -f "$workspace/Cargo.toml" ]]; then
+                    echo "No Cargo.toml found in $workspace."
+                    read "reply?Initialize a Rust package here? [y/N] "
+                    if [[ "$reply" == [yY] ]]; then
+                        read "package_name?Package name (blank uses directory name): "
+                        if [[ -n "$package_name" ]]; then
+                            (cd "$workspace" && cargo init --name "$package_name") || echo "Cargo initialization failed."
+                        else
+                            (cd "$workspace" && cargo init) || echo "Cargo initialization failed."
+                        fi
+                    fi
+                fi
                 open_shell "$workspace"
                 ;;
             17)
