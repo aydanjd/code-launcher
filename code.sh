@@ -1861,7 +1861,7 @@ language_hub() {
             2) command -v node >/dev/null 2>&1 && node || echo "Node.js not found." ;;
             3) command -v jshell >/dev/null 2>&1 && jshell || echo "JShell not found; check Java JDK." ;;
             4) command -v irb >/dev/null 2>&1 && irb || echo "IRB not found." ;;
-            5) command -v perl >/dev/null 2>&1 && { echo "Perl interactive mode (Ctrl-D to exit)."; perl -de 0; } || echo "Perl not found." ;;
+            5) command -v perl >/dev/null 2>&1 && { echo "Perl mini-REPL (Ctrl-D to exit; each line is evaluated separately)."; perl -MTerm::ReadLine -e '$term = Term::ReadLine->new("Perl"); while (defined($line = $term->readline("perl> "))) { eval $line; warn $@ if $@; }' ; } || echo "Perl not found." ;;
             6) command -v lua >/dev/null 2>&1 && lua || echo "Lua not found." ;;
             7) command -v R >/dev/null 2>&1 && R --no-save || echo "R not found." ;;
             8) command -v julia >/dev/null 2>&1 && julia || echo "Julia not found." ;;
